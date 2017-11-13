@@ -1,4 +1,4 @@
-group 'rebillion.io'
+group 'com.hsenidmobile.training'
 version '1.0-SNAPSHOT'
 
 apply plugin: 'java'
