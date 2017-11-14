@@ -16,5 +16,6 @@ dependencies {
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.2'
     compile group: 'org.glassfish.jersey.core', name: 'jersey-client', version: '2.25'
     compile group: 'com.fasterxml.jackson.jaxrs', name: 'jackson-jaxrs-json-provider', version: '2.9.2'
+    compile group: 'org.mongodb', name: 'mongodb-driver', version: '1.5.0'
 
 }
