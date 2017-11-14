@@ -13,6 +13,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.*;
 import io.netty.util.concurrent.DefaultThreadFactory;
+import io.reactivex.Observable;
+import io.reactivex.schedulers.Schedulers;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
 import static io.netty.handler.codec.http.HttpVersion.*;
@@ -26,6 +28,7 @@ public class MyRequestHandler extends ChannelInboundHandlerAdapter {
 
     private final ExecutorService workHistoryThreadPool = Executors.newFixedThreadPool(1, new DefaultThreadFactory("work-history"));
     private final ExecutorService platformProficiencyThreadPool = Executors.newFixedThreadPool(1, new DefaultThreadFactory("platform-proficiency"));
+    private final ExecutorService transportThreadPool = Executors.newFixedThreadPool(1, new DefaultThreadFactory("transport"));
 
     @Override
     public void channelReadComplete(ChannelHandlerContext ctx) {
@@ -38,17 +41,15 @@ public class MyRequestHandler extends ChannelInboundHandlerAdapter {
             FullHttpRequest req = (FullHttpRequest) msg;
             FullHttpResponse response = null;
 
-            Future<WorkHistory> workHistoryFuture = workHistoryThreadPool.submit(new WorkHistoryCallable());
-            WorkHistory workHistory = unsafeFutureGet(workHistoryFuture);
-
-            Future<PlatformProficiency> proficiencyFuture = platformProficiencyThreadPool.submit(new PlatformProficienciesCallable());
-            PlatformProficiency platformProficiency = unsafeFutureGet(proficiencyFuture);
-
-            Profile profile = new Profile();
-            profile.setWorkHistory(workHistory);
-            profile.setPlatformProficiency(platformProficiency);
-
-            itsJustTransport(ctx, req, profile);
+            Observable.fromCallable(new WorkHistoryCallable())
+                    .subscribeOn(Schedulers.from(workHistoryThreadPool))
+                    .zipWith(Observable.fromCallable(new PlatformProficienciesCallable()).subscribeOn(Schedulers.from(platformProficiencyThreadPool)), (workHistory, platformProficiency) -> {
+                Profile profile = new Profile();
+                profile.setPlatformProficiency(platformProficiency);
+                profile.setWorkHistory(workHistory);
+                return profile;
+            }).observeOn(Schedulers.from(transportThreadPool))
+                    .subscribe(profile -> itsJustTransport(ctx, req, profile));
         }
     }
 
@@ -64,6 +65,7 @@ public class MyRequestHandler extends ChannelInboundHandlerAdapter {
     }
 
     private void itsJustTransport(ChannelHandlerContext ctx, FullHttpRequest req, Profile profile) {
+        System.out.println("Transport (Observer) - Got called by " + Thread.currentThread().getName());
         FullHttpResponse response;ObjectMapper objectMapper = new ObjectMapper();
         byte[] responseBytes = new byte[]{};
         try {
@@ -84,6 +86,7 @@ public class MyRequestHandler extends ChannelInboundHandlerAdapter {
             response.headers().set("Connection", "keep-alive");
             ctx.write(response);
         }
+        ctx.flush();
     }
 
     @Override

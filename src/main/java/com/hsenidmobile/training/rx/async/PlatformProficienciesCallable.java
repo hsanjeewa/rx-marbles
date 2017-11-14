@@ -16,6 +16,7 @@ public class PlatformProficienciesCallable implements Callable<PlatformProficien
 
     @Override
     public PlatformProficiency call() throws Exception {
+        System.out.println("Platform Proficiencies History - Got called by " + Thread.currentThread().getName());
         Client client = ClientBuilder.newClient();
         client.register(JacksonJsonProvider.class);
         WebTarget target = client.target("http://demo2867744.mockable.io/platforms/089");

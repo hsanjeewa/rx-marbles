@@ -17,6 +17,7 @@ public class WorkHistoryCallable implements Callable<WorkHistory> {
 
     @Override
     public WorkHistory call() throws Exception {
+        System.out.println("Work History - Got called by " + Thread.currentThread().getName());
         Client client = ClientBuilder.newClient();
         client.register(JacksonJsonProvider.class);
         WebTarget target = client.target("http://demo2867744.mockable.io/workHistory/089");
