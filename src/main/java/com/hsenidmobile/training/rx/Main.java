@@ -14,7 +14,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 public class Main {
     public static void main(String[] args) {
         NioEventLoopGroup group1 = new NioEventLoopGroup(1);
-        NioEventLoopGroup group2 = new NioEventLoopGroup(2);
+        NioEventLoopGroup group2 = new NioEventLoopGroup(1);
 
         ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(group1, group2);

@@ -38,17 +38,10 @@ public class MyRequestHandler extends ChannelInboundHandlerAdapter {
             FullHttpRequest req = (FullHttpRequest) msg;
             FullHttpResponse response = null;
 
-            Future<WorkHistory> workHistoryFuture = workHistoryThreadPool.submit(new WorkHistoryCallable());
-            WorkHistory workHistory = unsafeFutureGet(workHistoryFuture);
-
-            Future<PlatformProficiency> proficiencyFuture = platformProficiencyThreadPool.submit(new PlatformProficienciesCallable());
-            PlatformProficiency platformProficiency = unsafeFutureGet(proficiencyFuture);
-
             Profile profile = new Profile();
-            profile.setWorkHistory(workHistory);
-            profile.setPlatformProficiency(platformProficiency);
-
-            itsJustTransport(ctx, req, profile);
+            workHistoryThreadPool
+                    .submit(new WorkHistoryCallable(profile,
+                            new PlatformProficienciesCallable(ctx, req, profile)));
         }
     }
 
@@ -63,7 +56,7 @@ public class MyRequestHandler extends ChannelInboundHandlerAdapter {
         }
     }
 
-    private void itsJustTransport(ChannelHandlerContext ctx, FullHttpRequest req, Profile profile) {
+    public static void itsJustTransport(ChannelHandlerContext ctx, FullHttpRequest req, Profile profile) {
         FullHttpResponse response;ObjectMapper objectMapper = new ObjectMapper();
         byte[] responseBytes = new byte[]{};
         try {
@@ -74,7 +67,7 @@ public class MyRequestHandler extends ChannelInboundHandlerAdapter {
 
         response = new DefaultFullHttpResponse(HTTP_1_1, OK, Unpooled.wrappedBuffer(responseBytes));
 
-        boolean keepAlive = HttpUtil.isKeepAlive(req);
+        boolean keepAlive = false;
         response.headers().set("Content-Type", "application/json");
         response.headers().setInt("Content-Length", response.content().readableBytes());
 
@@ -84,6 +77,7 @@ public class MyRequestHandler extends ChannelInboundHandlerAdapter {
             response.headers().set("Connection", "keep-alive");
             ctx.write(response);
         }
+        ctx.flush();
     }
 
     @Override
